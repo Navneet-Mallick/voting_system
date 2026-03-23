@@ -125,32 +125,55 @@ CREATE TABLE votes (
 --        • election details not duplicated in votes
 -- ============================================================
 
--- Sample data
+-- ============================================================
+--  SAMPLE DATA - CUSTOMIZE AS NEEDED
+-- ============================================================
+
+-- Admin User (Email: admin@vote.com, Password: admin123)
+-- To change password: use generate_password_hash.php
 INSERT INTO users (full_name, email, password_hash, role_id)
 VALUES ('Admin User', 'admin@vote.com',
         '$2y$10$BulwvejkHay7tUonMIF4oeFDE0PqhGqGd3BOwUEJrTmlDmZOJYMZ6', 1);
 
+-- Political Parties (Customize names and descriptions)
 INSERT INTO parties (party_name, description) VALUES
-('Nepal Congress', 'Democratic socialist political party'),
-('Communist Party of Nepal (UML)', 'Communist political party'),
-('Rastriya Swatantra Party', 'Liberal democratic party'),
-('Rastriya Prajatantra Party', 'Royalist and Hindu nationalist party'),
-('Janata Samajwadi Party', 'Socialist political party');
+('Tech Innovators Alliance', 'Championing digital transformation, smart campus initiatives, coding competitions, hackathons, and cutting-edge technology integration in education.'),
+('Progressive Engineers Forum', 'Committed to student welfare, affordable education, improved lab facilities, mental health support, and academic excellence for all engineering disciplines.'),
+('United Students Coalition', 'Building an inclusive campus through cultural diversity programs, equal opportunities, collaborative projects, and strong inter-departmental unity.'),
+('Future Leaders Party', 'Focused on career development, industry partnerships, internship opportunities, entrepreneurship support, and preparing students for professional success.');
 
+-- Voting Positions
 INSERT INTO positions (position_name, description, display_order) VALUES
 ('President',     'Chief executive officer of the organization', 1),
 ('Vice President', 'Second in command, assists the president', 2),
 ('Secretary',     'Handles documentation and communications', 3),
 ('Treasurer',     'Manages finances and budgets', 4);
 
+-- Election
 INSERT INTO elections (title, description, start_date, end_date, status, created_by)
 VALUES ('Student Union Election 2025',
         'Vote for your student union representatives for the academic year 2025.',
         '2025-01-01 00:00:00', '2025-12-31 23:59:59', 'active', 1);
 
+-- Candidates (party_id: 1=TIA, 2=PEF, 3=USC, 4=FLP | position_id: 1=President, 2=VP, 3=Secretary, 4=Treasurer)
 INSERT INTO candidates (election_id, party_id, position_id, full_name, bio) VALUES
-(1, 1, 1, 'Rajesh Sharma',     'Third-year BBA student passionate about student welfare.'),
-(1, 2, 1, 'Suman Thapa',       'Experienced leader with strong organizational skills.'),
-(1, 3, 2, 'Anita Gurung',      'Second-year student focused on transparency and accountability.'),
-(1, 4, 3, 'Prakash Adhikari',  'Detail-oriented student with excellent communication skills.'),
-(1, 5, 4, 'Sunita Rai',        'Economics major with strong financial management background.');
+-- President candidates (1 from each party)
+(1, 1, 1, 'Rajesh Sharma',     'Computer Engineering student passionate about tech innovation and smart campus initiatives.'),
+(1, 2, 1, 'Suman Thapa',       'Mechanical Engineering senior with proven leadership in student welfare projects.'),
+(1, 3, 1, 'Anita Gurung',      'Civil Engineering student committed to building inclusive campus culture.'),
+(1, 4, 1, 'Bikash Tamang',     'Electronics Engineering major focused on career development and industry connections.'),
+-- Vice President candidates (1 from each party)
+(1, 1, 2, 'Prakash Adhikari',  'Software Engineering student with strong technical and organizational skills.'),
+(1, 2, 2, 'Meera Shrestha',    'Electrical Engineering major dedicated to academic excellence and student support.'),
+(1, 3, 2, 'Sunita Rai',        'Architecture student promoting diversity and collaborative campus environment.'),
+(1, 4, 2, 'Ramesh Karki',      'Industrial Engineering student with focus on professional skill development.'),
+-- Secretary candidates (1 from each party)
+(1, 1, 3, 'Priya Poudel',      'IT Engineering student with excellent documentation and communication abilities.'),
+(1, 2, 3, 'Arun Shahi',        'Aerospace Engineering major skilled in event coordination and record management.'),
+(1, 3, 3, 'Sabina Magar',      'Chemical Engineering student committed to transparent communication systems.'),
+(1, 4, 3, 'Deepak Basnet',     'Biomedical Engineering major with strong administrative experience.'),
+-- Treasurer candidates (1 from each party)
+(1, 1, 4, 'Kritika Thapa',     'Computer Engineering student with financial management and budgeting expertise.'),
+(1, 2, 4, 'Suresh Pandey',     'Mechanical Engineering major experienced in fund allocation and auditing.'),
+(1, 3, 4, 'Nisha Gurung',      'Civil Engineering student with strong analytical and financial planning skills.'),
+(1, 4, 4, 'Rohan Shrestha',    'Electronics Engineering major focused on transparent financial operations.');

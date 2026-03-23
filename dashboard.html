@@ -47,14 +47,14 @@
 
 <!-- Vote Modal -->
 <div class="modal-overlay" id="vote-modal" style="display:none">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:650px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div class="modal-header" style="flex-shrink:0">
       <h3 id="modal-title">Cast Your Vote</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <p id="modal-desc" style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem"></p>
-    <div id="candidates-grid" class="card-grid" style="grid-template-columns:1fr 1fr"></div>
-    <div style="margin-top:1.5rem;display:flex;justify-content:flex-end;gap:.75rem">
+    <p id="modal-desc" style="color:var(--muted);margin-bottom:1rem;font-size:.9rem;flex-shrink:0"></p>
+    <div id="candidates-grid" class="card-grid" style="grid-template-columns:1fr 1fr;overflow-y:auto;flex:1;padding-right:10px;margin-bottom:1rem"></div>
+    <div style="flex-shrink:0;display:flex;justify-content:flex-end;gap:.75rem;padding-top:1rem;border-top:1px solid #e5e7eb">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-success" id="cast-btn" disabled onclick="castVote()">
         ✓ Confirm Vote
@@ -171,17 +171,18 @@ async function openVote(eid, title, desc) {
 
   // Render grouped by position
   let html = '';
-  Object.values(byPosition).forEach(pos => {
+  Object.values(byPosition).forEach((pos, idx) => {
     const alreadyVoted = votedPositions[pos.position_id];
-    html += `<div style="grid-column:1/-1;margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:1rem">
-      <h4 style="margin-bottom:.75rem;color:var(--primary)">${pos.position_name}</h4>`;
+    const marginTop = idx === 0 ? '0' : '1.5rem';
+    html += `<div style="grid-column:1/-1;margin-top:${marginTop};${idx > 0 ? 'border-top:1px solid #e5e7eb;' : ''}padding-top:${idx > 0 ? '1rem' : '0'}">
+      <h4 style="margin-bottom:.75rem;color:var(--primary);font-size:1.1rem">${pos.position_name}</h4>`;
     
     if (alreadyVoted) {
-      html += `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;text-align:center">
+      html += `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;text-align:center;margin-bottom:.5rem">
         <p style="margin:0">✅ You voted for <strong>${alreadyVoted.candidate_name}</strong> (${alreadyVoted.party_name})</p>
       </div>`;
     } else {
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem">';
       pos.candidates.forEach((c, i) => {
         html += `
           <div class="candidate-card" style="animation-delay:${i * 60}ms" 

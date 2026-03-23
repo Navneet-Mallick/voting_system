@@ -512,3 +512,33 @@ tr:hover td { background: #fafaf7; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Custom Scrollbar ───────────────────────────────────────── */
+#candidates-grid::-webkit-scrollbar {
+  width: 10px;
+}
+#candidates-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+  margin: 4px 0;
+}
+#candidates-grid::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+  border: 2px solid #f1f1f1;
+}
+#candidates-grid::-webkit-scrollbar-thumb:hover {
+  background: #142d55;
+}
+/* Firefox scrollbar */
+#candidates-grid {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) #f1f1f1;
+  scroll-behavior: smooth;
+}
+
+/* Ensure position sections don't break */
+.position-section {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
