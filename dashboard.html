@@ -55,9 +55,9 @@
     <p id="modal-desc" style="color:var(--muted);margin-bottom:1rem;font-size:.9rem;flex-shrink:0"></p>
     <div id="candidates-grid" class="card-grid" style="grid-template-columns:1fr 1fr;overflow-y:auto;flex:1;padding-right:10px;margin-bottom:1rem"></div>
     <div style="flex-shrink:0;display:flex;justify-content:flex-end;gap:.75rem;padding-top:1rem;border-top:1px solid #e5e7eb">
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
       <button class="btn btn-success" id="cast-btn" disabled onclick="castVote()">
-        ✓ Confirm Vote
+        ✓ Cast Vote
       </button>
     </div>
   </div>
@@ -220,23 +220,39 @@ function selectCandidate(cid, posId, el) {
 }
 
 async function castVote() {
-  if (!selectedCandidateId) return;
+  if (!selectedCandidateId || !selectedPositionId) {
+    showToast('Please select a candidate', 'error');
+    return;
+  }
+  
   const btn = document.getElementById('cast-btn');
+  const originalText = btn.innerHTML;
   btn.innerHTML = '<span class="spinner"></span> Submitting…';
   btn.disabled  = true;
 
-  const res = await api('php/votes.php?action=cast', {
-    election_id:  currentElectionId,
-    candidate_id: selectedCandidateId
-  });
-  if (res.success) {
-    showToast(res.message, 'success');
-    closeModal();
-    loadElections();
-  } else {
-    showToast(res.message, 'error');
-    btn.innerHTML = '✓ Confirm Vote';
-    btn.disabled  = false;
+  try {
+    const res = await api('php/votes.php?action=cast', {
+      election_id:  currentElectionId,
+      candidate_id: selectedCandidateId
+    });
+    
+    if (res && res.success) {
+      showToast(res.message, 'success');
+      // Reload the modal to show updated state
+      await openVote(currentElectionId, document.getElementById('modal-title').textContent, document.getElementById('modal-desc').textContent);
+      // Reset button
+      btn.innerHTML = originalText;
+      btn.disabled = true;
+    } else {
+      showToast(res?.message || 'Failed to cast vote', 'error');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  } catch (error) {
+    console.error('Vote error:', error);
+    showToast('Network error. Please try again.', 'error');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 }
 
