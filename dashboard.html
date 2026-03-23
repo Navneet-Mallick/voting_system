@@ -47,18 +47,18 @@
 
 <!-- Vote Modal -->
 <div class="modal-overlay" id="vote-modal" style="display:none">
-  <div class="modal" style="max-width:650px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+  <div class="modal" style="max-width:660px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
     <div class="modal-header" style="flex-shrink:0">
-      <h3 id="modal-title">Cast Your Vote</h3>
+      <div>
+        <h3 id="modal-title">Cast Your Vote</h3>
+        <p id="modal-progress" style="font-size:.82rem;color:var(--muted);margin-top:.25rem"></p>
+      </div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <p id="modal-desc" style="color:var(--muted);margin-bottom:1rem;font-size:.9rem;flex-shrink:0"></p>
-    <div id="candidates-grid" class="card-grid" style="grid-template-columns:1fr 1fr;overflow-y:auto;flex:1;padding-right:10px;margin-bottom:1rem"></div>
-    <div style="flex-shrink:0;display:flex;justify-content:flex-end;gap:.75rem;padding-top:1rem;border-top:1px solid #e5e7eb">
+    <div id="candidates-grid" style="overflow-y:auto;flex:1;padding:0 4px 1rem 0"></div>
+    <div style="flex-shrink:0;padding-top:1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+      <span id="vote-status-text" style="font-size:.85rem;color:var(--muted)"></span>
       <button class="btn btn-outline" onclick="closeModal()">Close</button>
-      <button class="btn btn-success" id="cast-btn" disabled onclick="castVote()">
-        ✓ Cast Vote
-      </button>
     </div>
   </div>
 </div>
@@ -134,125 +134,130 @@ function renderElections(elections) {
 }
 
 async function openVote(eid, title, desc) {
-  if (isAdmin) {
-    showToast('Admins cannot cast votes.', 'error');
-    return;
-  }
-  currentElectionId   = eid;
+  if (isAdmin) { showToast('Admins cannot cast votes.', 'error'); return; }
+  currentElectionId = eid;
   selectedCandidateId = null;
+  selectedPositionId = null;
+  selectedCandidates = {};
+
   document.getElementById('vote-modal').style.display = 'flex';
-  document.getElementById('modal-title').textContent  = title;
-  document.getElementById('modal-desc').textContent   = desc;
-  document.getElementById('cast-btn').disabled        = true;
-  document.getElementById('candidates-grid').innerHTML = '<p>Loading candidates…</p>';
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('candidates-grid').innerHTML = '<p style="padding:1rem;color:var(--muted)">Loading candidates…</p>';
+  document.getElementById('modal-progress').textContent = '';
+  document.getElementById('vote-status-text').textContent = '';
 
-  // Check which positions already voted
-  const vr = await api(`php/votes.php?action=check&election_id=${eid}`);
+  const [vr, cr] = await Promise.all([
+    api(`php/votes.php?action=check&election_id=${eid}`),
+    api(`php/candidates.php?action=list&election_id=${eid}`)
+  ]);
+
   const votedPositions = vr.votes || {};
-
-  const cr = await api(`php/candidates.php?action=list&election_id=${eid}`);
   if (!cr.success || !cr.data.length) {
-    document.getElementById('candidates-grid').innerHTML = '<p>No candidates yet.</p>';
+    document.getElementById('candidates-grid').innerHTML = '<p style="padding:1rem;color:var(--muted)">No candidates yet.</p>';
     return;
   }
 
-  // Group candidates by position
+  // Group by position
   const byPosition = {};
   cr.data.forEach(c => {
-    if (!byPosition[c.position_id]) {
-      byPosition[c.position_id] = {
-        position_id: c.position_id,
-        position_name: c.position_name,
-        candidates: []
-      };
-    }
+    if (!byPosition[c.position_id]) byPosition[c.position_id] = { position_id: c.position_id, position_name: c.position_name, candidates: [] };
     byPosition[c.position_id].candidates.push(c);
   });
 
-  // Render grouped by position
+  const positions = Object.values(byPosition);
+  const totalPositions = positions.length;
+  const votedCount = Object.keys(votedPositions).length;
+  const remaining = totalPositions - votedCount;
+
+  document.getElementById('modal-progress').textContent = `${votedCount} of ${totalPositions} positions voted`;
+  document.getElementById('vote-status-text').textContent = remaining > 0 ? `${remaining} position(s) remaining` : '✅ All positions voted';
+
   let html = '';
-  Object.values(byPosition).forEach((pos, idx) => {
+  positions.forEach((pos, idx) => {
     const alreadyVoted = votedPositions[pos.position_id];
-    const marginTop = idx === 0 ? '0' : '1.5rem';
-    html += `<div class="position-section" data-position-id="${pos.position_id}" style="grid-column:1/-1;margin-top:${marginTop};${idx > 0 ? 'border-top:1px solid #e5e7eb;' : ''}padding-top:${idx > 0 ? '1rem' : '0'}">
-      <h4 style="margin-bottom:.75rem;color:var(--primary);font-size:1.1rem">${pos.position_name}</h4>`;
-    
+    html += `
+      <div class="position-section" data-position-id="${pos.position_id}" style="padding:1.25rem 0;${idx > 0 ? 'border-top:2px solid #e5e7eb;' : ''}">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
+          <span style="background:var(--primary);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">${idx + 1}</span>
+          <h4 style="margin:0;color:var(--primary);font-size:1rem">${pos.position_name}</h4>
+          ${alreadyVoted ? '<span style="margin-left:auto;background:#d1fae5;color:#065f46;padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700">✓ VOTED</span>' : '<span style="margin-left:auto;background:#fef3c7;color:#92400e;padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700">PENDING</span>'}
+        </div>`;
+
     if (alreadyVoted) {
-      html += `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;text-align:center;margin-bottom:.5rem">
-        <p style="margin:0">✅ You voted for <strong>${alreadyVoted.candidate_name}</strong> (${alreadyVoted.party_name})</p>
-      </div>`;
+      html += `
+        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:1rem;display:flex;align-items:center;gap:.75rem">
+          <span style="font-size:1.5rem">✅</span>
+          <div>
+            <div style="font-weight:700">${alreadyVoted.candidate_name}</div>
+            <div style="font-size:.85rem;color:var(--muted)">🏛️ ${alreadyVoted.party_name}</div>
+          </div>
+        </div>`;
     } else {
-      html += '<div class="candidates-container" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem">';
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">`;
       pos.candidates.forEach((c, i) => {
         html += `
-          <div class="candidate-card" data-position-id="${pos.position_id}" style="animation-delay:${i * 60}ms" 
-               onclick="selectCandidate(${c.candidate_id}, ${pos.position_id}, this)" 
-               id="cand-${c.candidate_id}">
+          <div class="candidate-card" data-position-id="${pos.position_id}" id="cand-${c.candidate_id}"
+               style="animation-delay:${i * 50}ms;cursor:pointer"
+               onclick="selectCandidate(${c.candidate_id}, ${pos.position_id}, this)">
             <div class="check-mark">✓</div>
             <div class="candidate-name">${c.full_name}</div>
             <div class="candidate-party">🏛️ ${c.party_name}</div>
-            <div class="candidate-bio">${c.bio || ''}</div>
+            <div class="candidate-bio" style="font-size:.82rem;color:var(--muted);margin-top:.3rem">${c.bio || ''}</div>
           </div>`;
       });
-      html += '</div>';
+      html += `</div>`;
     }
-    html += '</div>';
+    html += `</div>`;
   });
 
   document.getElementById('candidates-grid').innerHTML = html;
 }
 
 let selectedPositionId = null;
-let selectedCandidates = {}; // Track selections per position
+let selectedCandidates = {};
 
 function selectCandidate(cid, posId, el) {
-  // Clear selection only for candidates in THIS position
-  document.querySelectorAll(`.candidate-card[data-position-id="${posId}"]`).forEach(c => {
-    c.classList.remove('selected');
-  });
-  
-  // Select this candidate
+  // Deselect others in same position only
+  document.querySelectorAll(`.candidate-card[data-position-id="${posId}"]`).forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   selectedCandidates[posId] = cid;
   selectedCandidateId = cid;
   selectedPositionId = posId;
-  document.getElementById('cast-btn').disabled = false;
+
+  // Show confirm button inside the position section
+  const section = document.querySelector(`.position-section[data-position-id="${posId}"]`);
+  let confirmBtn = section.querySelector('.confirm-position-btn');
+  if (!confirmBtn) {
+    confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn btn-success confirm-position-btn';
+    confirmBtn.style.cssText = 'margin-top:.75rem;width:100%';
+    confirmBtn.onclick = () => castVote(posId);
+    section.appendChild(confirmBtn);
+  }
+  confirmBtn.innerHTML = `✓ Confirm vote for <strong>${el.querySelector('.candidate-name').textContent}</strong>`;
 }
 
-async function castVote() {
-  if (!selectedCandidateId || !selectedPositionId) {
-    showToast('Please select a candidate', 'error');
-    return;
-  }
-  
-  const btn = document.getElementById('cast-btn');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner"></span> Submitting…';
-  btn.disabled  = true;
+async function castVote(posId) {
+  const cid = selectedCandidates[posId];
+  if (!cid) return;
+
+  const btn = document.querySelector(`.position-section[data-position-id="${posId}"] .confirm-position-btn`);
+  if (btn) { btn.innerHTML = '<span class="spinner"></span> Submitting…'; btn.disabled = true; }
 
   try {
-    const res = await api('php/votes.php?action=cast', {
-      election_id:  currentElectionId,
-      candidate_id: selectedCandidateId
-    });
-    
+    const res = await api('php/votes.php?action=cast', { election_id: currentElectionId, candidate_id: cid });
     if (res && res.success) {
       showToast(res.message, 'success');
-      // Reload the modal to show updated state
-      await openVote(currentElectionId, document.getElementById('modal-title').textContent, document.getElementById('modal-desc').textContent);
-      // Reset button
-      btn.innerHTML = originalText;
-      btn.disabled = true;
+      delete selectedCandidates[posId];
+      // Reload modal to reflect voted state
+      await openVote(currentElectionId, document.getElementById('modal-title').textContent, '');
     } else {
       showToast(res?.message || 'Failed to cast vote', 'error');
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+      if (btn) { btn.innerHTML = '✓ Confirm Vote'; btn.disabled = false; }
     }
-  } catch (error) {
-    console.error('Vote error:', error);
+  } catch (e) {
     showToast('Network error. Please try again.', 'error');
-    btn.innerHTML = originalText;
-    btn.disabled = false;
+    if (btn) { btn.innerHTML = '✓ Confirm Vote'; btn.disabled = false; }
   }
 }
 
