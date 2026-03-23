@@ -1,7 +1,0 @@
-.git
-.gitignore
-README.md
-PRESENTATION_CHECKLIST.md
-ER_Diagram.svg
-generate_password_hash.php
-php/config.php
