@@ -174,7 +174,7 @@ async function openVote(eid, title, desc) {
   Object.values(byPosition).forEach((pos, idx) => {
     const alreadyVoted = votedPositions[pos.position_id];
     const marginTop = idx === 0 ? '0' : '1.5rem';
-    html += `<div style="grid-column:1/-1;margin-top:${marginTop};${idx > 0 ? 'border-top:1px solid #e5e7eb;' : ''}padding-top:${idx > 0 ? '1rem' : '0'}">
+    html += `<div class="position-section" data-position-id="${pos.position_id}" style="grid-column:1/-1;margin-top:${marginTop};${idx > 0 ? 'border-top:1px solid #e5e7eb;' : ''}padding-top:${idx > 0 ? '1rem' : '0'}">
       <h4 style="margin-bottom:.75rem;color:var(--primary);font-size:1.1rem">${pos.position_name}</h4>`;
     
     if (alreadyVoted) {
@@ -182,10 +182,10 @@ async function openVote(eid, title, desc) {
         <p style="margin:0">✅ You voted for <strong>${alreadyVoted.candidate_name}</strong> (${alreadyVoted.party_name})</p>
       </div>`;
     } else {
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem">';
+      html += '<div class="candidates-container" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem">';
       pos.candidates.forEach((c, i) => {
         html += `
-          <div class="candidate-card" style="animation-delay:${i * 60}ms" 
+          <div class="candidate-card" data-position-id="${pos.position_id}" style="animation-delay:${i * 60}ms" 
                onclick="selectCandidate(${c.candidate_id}, ${pos.position_id}, this)" 
                id="cand-${c.candidate_id}">
             <div class="check-mark">✓</div>
@@ -203,17 +203,19 @@ async function openVote(eid, title, desc) {
 }
 
 let selectedPositionId = null;
+let selectedCandidates = {}; // Track selections per position
 
 function selectCandidate(cid, posId, el) {
-  // Clear selection in this position group only
-  document.querySelectorAll('.candidate-card').forEach(c => {
-    if (c.id === `cand-${cid}` || c.onclick.toString().includes(`${posId}`)) {
-      c.classList.remove('selected');
-    }
+  // Clear selection only for candidates in THIS position
+  document.querySelectorAll(`.candidate-card[data-position-id="${posId}"]`).forEach(c => {
+    c.classList.remove('selected');
   });
+  
+  // Select this candidate
   el.classList.add('selected');
+  selectedCandidates[posId] = cid;
   selectedCandidateId = cid;
-  selectedPositionId  = posId;
+  selectedPositionId = posId;
   document.getElementById('cast-btn').disabled = false;
 }
 
