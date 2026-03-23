@@ -1,11 +1,11 @@
 <?php
 // ── Database Configuration ────────────────────────────────────
-// Copy this file to config.php and update with your credentials
-define('DB_HOST', 'localhost');
-define('DB_PORT', '3306');  // Change to 3307 if needed
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'voting_system');
+// Use environment variables in production (Render), fallback to local values
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_PORT', getenv('DB_PORT') ?: '3306');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'voting_system');
 
 // ── Production Settings ───────────────────────────────────────
 // Uncomment these in production environment
