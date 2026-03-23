@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoteSecure — Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a class="brand" href="dashboard.html">🗳️ Vote<span>Secure</span></a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="active">Elections</a>
+    <a href="results.html">Results</a>
+    <span id="nav-user" style="color:rgba(255,255,255,.7);font-size:.9rem"></span>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero" style="padding:2.5rem 2rem">
+  <h1 style="font-size:1.75rem;margin-bottom:.5rem">Active Elections</h1>
+  <p style="margin:0;opacity:.85">Cast your vote securely and transparently.</p>
+</div>
+
+<!-- Elections list -->
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="filterElections('all', this)">All</button>
+    <button class="tab-btn" onclick="filterElections('active', this)">Active</button>
+    <button class="tab-btn" onclick="filterElections('upcoming', this)">Upcoming</button>
+    <button class="tab-btn" onclick="filterElections('closed', this)">Closed</button>
+  </div>
+
+  <div id="elections-grid" class="card-grid">
+    <div class="empty-state"><div class="icon">⏳</div>Loading elections…</div>
+  </div>
+</div>
+
+<!-- Vote Modal -->
+<div class="modal-overlay" id="vote-modal" style="display:none">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="modal-title">Cast Your Vote</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <p id="modal-desc" style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem"></p>
+    <div id="candidates-grid" class="card-grid" style="grid-template-columns:1fr 1fr"></div>
+    <div style="margin-top:1.5rem;display:flex;justify-content:flex-end;gap:.75rem">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" id="cast-btn" disabled onclick="castVote()">
+        ✓ Confirm Vote
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+let allElections = [];
+let selectedCandidateId = null;
+let currentElectionId   = null;
+let isAdmin = false;
+
+(async () => {
+  const sess = await requireAuth();
+  if (!sess) return;
+  isAdmin = sess.role === 'admin';
+  renderNav(sess);
+  loadElections();
+})();
+
+async function loadElections() {
+  const res = await api('php/elections.php?action=list');
+  if (!res.success) { showToast('Failed to load elections', 'error'); return; }
+  allElections = res.data;
+  renderElections(allElections);
+}
+
+function filterElections(status, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = status === 'all' ? allElections : allElections.filter(e => e.status === status);
+  renderElections(filtered);
+}
+
+function renderElections(elections) {
+  const grid = document.getElementById('elections-grid');
+  if (!elections.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📭</div>No elections found.</div>';
+    return;
+  }
+  grid.innerHTML = elections.map((e, i) => `
+    <div class="card election-card" style="animation-delay:${i * 60}ms">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+        ${statusBadge(e.status)}
+        <small style="color:var(--muted)">#${e.election_id}</small>
+      </div>
+      <div class="election-title">${e.title}</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.5rem 0">${e.description || 'No description.'}</p>
+      <div class="election-meta">
+        <span>📅 ${fmtDate(e.start_date)}</span>
+        <span>⏰ ${fmtDate(e.end_date)}</span>
+        <span>👥 ${e.candidate_count} candidates</span>
+        <span>🗳️ ${e.vote_count} votes</span>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:.8rem;color:var(--muted)">By ${e.created_by_name}</span>
+        ${e.status === 'active'
+          ? (!isAdmin
+              ? `<button class="btn btn-success btn-sm" onclick="openVote(${e.election_id}, '${e.title}', '${e.description || ''}')">Vote Now →</button>`
+              : `<button class="btn btn-outline btn-sm" onclick="window.location='results.html?id=${e.election_id}'">View Results</button>`
+            )
+          : `<button class="btn btn-outline btn-sm" onclick="window.location='results.html?id=${e.election_id}'">View Results</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+async function openVote(eid, title, desc) {
+  if (isAdmin) {
+    showToast('Admins cannot cast votes.', 'error');
+    return;
+  }
+  currentElectionId   = eid;
+  selectedCandidateId = null;
+  document.getElementById('vote-modal').style.display = 'flex';
+  document.getElementById('modal-title').textContent  = title;
+  document.getElementById('modal-desc').textContent   = desc;
+  document.getElementById('cast-btn').disabled        = true;
+  document.getElementById('candidates-grid').innerHTML = '<p>Loading candidates…</p>';
+
+  // Check if already voted
+  const vr = await api(`php/votes.php?action=check&election_id=${eid}`);
+  if (vr.voted) {
+    document.getElementById('candidates-grid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:2rem">
+        <p style="font-size:2rem">✅</p>
+        <p>You already voted for <strong>${vr.data.candidate_name}</strong> (${vr.data.party_name})</p>
+      </div>`;
+    return;
+  }
+
+  const cr = await api(`php/candidates.php?action=list&election_id=${eid}`);
+  if (!cr.success || !cr.data.length) {
+    document.getElementById('candidates-grid').innerHTML = '<p>No candidates yet.</p>';
+    return;
+  }
+  document.getElementById('candidates-grid').innerHTML = cr.data.map((c, i) => `
+    <div class="candidate-card" style="animation-delay:${i * 60}ms" onclick="selectCandidate(${c.candidate_id}, this)" id="cand-${c.candidate_id}">
+      <div class="check-mark">✓</div>
+      <div class="candidate-name">${c.full_name}</div>
+      <div class="candidate-party">🏛️ ${c.party_name}</div>
+      <div class="candidate-bio">${c.bio || ''}</div>
+    </div>
+  `).join('');
+}
+
+function selectCandidate(cid, el) {
+  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCandidateId = cid;
+  document.getElementById('cast-btn').disabled = false;
+}
+
+async function castVote() {
+  if (!selectedCandidateId) return;
+  const btn = document.getElementById('cast-btn');
+  btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  btn.disabled  = true;
+
+  const res = await api('php/votes.php?action=cast', {
+    election_id:  currentElectionId,
+    candidate_id: selectedCandidateId
+  });
+  if (res.success) {
+    showToast(res.message, 'success');
+    closeModal();
+    loadElections();
+  } else {
+    showToast(res.message, 'error');
+    btn.innerHTML = '✓ Confirm Vote';
+    btn.disabled  = false;
+  }
+}
+
+function closeModal() {
+  document.getElementById('vote-modal').style.display = 'none';
+}
+</script>
+</body>
+</html>

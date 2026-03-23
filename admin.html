@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoteSecure — Admin Panel</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="brand" href="admin.html">🗳️ Vote<span>Secure</span> <span style="font-size:.7rem;background:var(--gold);color:var(--ink);padding:.1rem .4rem;border-radius:4px;vertical-align:middle">ADMIN</span></a>
+  <div class="nav-links">
+    <a href="admin.html" class="active">Dashboard</a>
+    <a href="dashboard.html">Voter View</a>
+    <span id="nav-user" style="color:rgba(255,255,255,.7);font-size:.9rem"></span>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Stats row -->
+  <div class="stat-grid" id="stats-row">
+    <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Total Users</div></div>
+    <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Elections</div></div>
+    <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Active Elections</div></div>
+    <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Total Votes</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('elections', this)">📋 Elections</button>
+    <button class="tab-btn" onclick="showTab('candidates', this)">👤 Candidates</button>
+    <button class="tab-btn" onclick="showTab('users', this)">👥 Users</button>
+    <button class="tab-btn" onclick="showTab('votes', this)">🗳️ Vote Log</button>
+  </div>
+
+  <!-- ── ELECTIONS TAB ───────────────────────────────────── -->
+  <div id="tab-elections">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <h3>Manage Elections</h3>
+      <button class="btn btn-primary" onclick="openElectionModal()">+ New Election</button>
+    </div>
+    <div class="table-wrap">
+      <table id="elections-table">
+        <thead>
+          <tr><th>#</th><th>Title</th><th>Status</th><th>Start</th><th>End</th><th>Votes</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CANDIDATES TAB ─────────────────────────────────── -->
+  <div id="tab-candidates" style="display:none">
+    <div style="display:flex;gap:1rem;align-items:flex-end;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div class="form-group" style="margin:0;flex:1;min-width:200px">
+        <label>Select Election</label>
+        <select class="form-control" id="cand-election-select" onchange="loadCandidates(this.value)">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openCandModal()">+ Add Candidate</button>
+    </div>
+    <div class="table-wrap">
+      <table id="candidates-table">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Party</th><th>Votes</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── USERS TAB ──────────────────────────────────────── -->
+  <div id="tab-users" style="display:none">
+    <div style="margin-bottom:1.5rem"><h3>Manage Users</h3></div>
+    <div class="table-wrap">
+      <table id="users-table">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── VOTE LOG TAB ───────────────────────────────────── -->
+  <div id="tab-votes" style="display:none">
+    <div style="display:flex;gap:1rem;align-items:flex-end;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div class="form-group" style="margin:0;flex:1;min-width:200px">
+        <label>Select Election</label>
+        <select class="form-control" id="log-election-select" onchange="loadVoteLog(this.value)">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="votes-table">
+        <thead>
+          <tr><th>#</th><th>Voter</th><th>Candidate</th><th>Party</th><th>Voted At</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Election Modal -->
+<div class="modal-overlay" id="election-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="em-title">New Election</h3>
+      <button class="modal-close" onclick="closeElectionModal()">✕</button>
+    </div>
+    <input type="hidden" id="em-id">
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" class="form-control" id="em-name" placeholder="Election title">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-control" id="em-desc" placeholder="Optional description"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group">
+        <label>Start Date *</label>
+        <input type="datetime-local" class="form-control" id="em-start">
+      </div>
+      <div class="form-group">
+        <label>End Date *</label>
+        <input type="datetime-local" class="form-control" id="em-end">
+      </div>
+    </div>
+    <div class="form-group" id="em-status-group" style="display:none">
+      <label>Status</label>
+      <select class="form-control" id="em-status">
+        <option value="upcoming">Upcoming</option>
+        <option value="active">Active</option>
+        <option value="closed">Closed</option>
+      </select>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem">
+      <button class="btn btn-outline" onclick="closeElectionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveElection()">Save Election</button>
+    </div>
+  </div>
+</div>
+
+<!-- Candidate Modal -->
+<div class="modal-overlay" id="cand-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="cm-title">Add Candidate</h3>
+      <button class="modal-close" onclick="closeCandModal()">✕</button>
+    </div>
+    <input type="hidden" id="cm-id">
+    <div class="form-group">
+      <label>Full Name *</label>
+      <input type="text" class="form-control" id="cm-name" placeholder="Candidate full name">
+    </div>
+    <div class="form-group">
+      <label>Party *</label>
+      <select class="form-control" id="cm-party"></select>
+    </div>
+    <div class="form-group">
+      <label>Bio</label>
+      <textarea class="form-control" id="cm-bio" placeholder="Short biography"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem">
+      <button class="btn btn-outline" onclick="closeCandModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCandidate()">Save Candidate</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+let electionsData = [];
+let currentTab    = 'elections';
+
+(async () => {
+  const sess = await requireAuth(true);
+  if (!sess) return;
+  renderNav(sess);
+  loadStats();
+  loadElectionsTable();
+  loadParties();
+})();
+
+// ── Stats ────────────────────────────────────────────────────
+async function loadStats() {
+  const res = await api('php/users.php?action=stats');
+  if (!res.success) return;
+  const d = res.data;
+  const cards = document.querySelectorAll('.stat-card .stat-value');
+  [d.total_users, d.total_elections, d.active_elections, d.total_votes].forEach((v, i) => {
+    cards[i].textContent = v;
+  });
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function showTab(tab, btn) {
+  ['elections','candidates','users','votes'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTab = tab;
+  if (tab === 'users')  loadUsersTable();
+  if (tab === 'candidates') populateCandElectionSelect();
+  if (tab === 'votes')  populateLogElectionSelect();
+}
+
+// ── Elections CRUD ────────────────────────────────────────────
+async function loadElectionsTable() {
+  const res = await api('php/elections.php?action=list');
+  if (!res.success) return;
+  electionsData = res.data;
+  const tbody = document.querySelector('#elections-table tbody');
+  tbody.innerHTML = electionsData.map(e => `
+    <tr>
+      <td>${e.election_id}</td>
+      <td><strong>${e.title}</strong></td>
+      <td>${statusBadge(e.status)}</td>
+      <td>${fmtDate(e.start_date)}</td>
+      <td>${fmtDate(e.end_date)}</td>
+      <td>${e.vote_count}</td>
+      <td style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="editElection(${e.election_id})">Edit</button>
+        <button class="btn btn-danger  btn-sm" onclick="deleteElection(${e.election_id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openElectionModal(id = null) {
+  document.getElementById('em-title').textContent = id ? 'Edit Election' : 'New Election';
+  document.getElementById('em-id').value   = '';
+  document.getElementById('em-name').value = '';
+  document.getElementById('em-desc').value = '';
+  document.getElementById('em-start').value = '';
+  document.getElementById('em-end').value   = '';
+  document.getElementById('em-status-group').style.display = id ? '' : 'none';
+  document.getElementById('election-modal').style.display  = 'flex';
+}
+
+function closeElectionModal() {
+  document.getElementById('election-modal').style.display = 'none';
+}
+
+async function editElection(id) {
+  const res = await api(`php/elections.php?action=get&id=${id}`);
+  if (!res.success) return;
+  const e = res.data;
+  openElectionModal(id);
+  document.getElementById('em-id').value     = e.election_id;
+  document.getElementById('em-name').value   = e.title;
+  document.getElementById('em-desc').value   = e.description || '';
+  document.getElementById('em-start').value  = e.start_date.replace(' ','T').slice(0,16);
+  document.getElementById('em-end').value    = e.end_date.replace(' ','T').slice(0,16);
+  document.getElementById('em-status').value = e.status;
+}
+
+async function saveElection() {
+  const id = document.getElementById('em-id').value;
+  const payload = {
+    action:      id ? 'update' : 'create',
+    election_id: id,
+    title:       document.getElementById('em-name').value,
+    description: document.getElementById('em-desc').value,
+    start_date:  document.getElementById('em-start').value.replace('T',' '),
+    end_date:    document.getElementById('em-end').value.replace('T',' '),
+    status:      document.getElementById('em-status').value
+  };
+  const res = await api(`php/elections.php?action=${payload.action}`, payload);
+  showToast(res.message, res.success ? 'success' : 'error');
+  if (res.success) { closeElectionModal(); loadElectionsTable(); loadStats(); }
+}
+
+async function deleteElection(id) {
+  confirmDialog('Delete this election and all its data?', async () => {
+    const res = await api('php/elections.php?action=delete', { election_id: id });
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) { loadElectionsTable(); loadStats(); }
+  });
+}
+
+// ── Candidates CRUD ───────────────────────────────────────────
+let partiesData = [];
+
+async function loadParties() {
+  const res = await api('php/candidates.php?action=parties');
+  if (res.success) partiesData = res.data;
+}
+
+function populateCandElectionSelect() {
+  const sel = document.getElementById('cand-election-select');
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    electionsData.map(e => `<option value="${e.election_id}">${e.title}</option>`).join('');
+}
+
+async function loadCandidates(eid) {
+  if (!eid) return;
+  const res = await api(`php/candidates.php?action=list&election_id=${eid}`);
+  if (!res.success) return;
+  const tbody = document.querySelector('#candidates-table tbody');
+  tbody.innerHTML = res.data.map(c => `
+    <tr>
+      <td>${c.candidate_id}</td>
+      <td><strong>${c.full_name}</strong></td>
+      <td>${c.party_name}</td>
+      <td>${c.total_votes}</td>
+      <td style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="editCandidate(${c.candidate_id},'${c.full_name}',${c.party_id},'${c.bio||''}')">Edit</button>
+        <button class="btn btn-danger  btn-sm" onclick="deleteCandidate(${c.candidate_id})">Remove</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCandModal() {
+  const eid = document.getElementById('cand-election-select').value;
+  if (!eid) { showToast('Select an election first.', 'info'); return; }
+  document.getElementById('cm-title').textContent = 'Add Candidate';
+  document.getElementById('cm-id').value   = '';
+  document.getElementById('cm-name').value = '';
+  document.getElementById('cm-bio').value  = '';
+  populateCandPartySelect();
+  document.getElementById('cand-modal').style.display = 'flex';
+}
+
+function editCandidate(id, name, partyId, bio) {
+  document.getElementById('cm-title').textContent = 'Edit Candidate';
+  document.getElementById('cm-id').value   = id;
+  document.getElementById('cm-name').value = name;
+  document.getElementById('cm-bio').value  = bio;
+  populateCandPartySelect(partyId);
+  document.getElementById('cand-modal').style.display = 'flex';
+}
+
+function populateCandPartySelect(selected = null) {
+  const sel = document.getElementById('cm-party');
+  sel.innerHTML = partiesData.map(p =>
+    `<option value="${p.party_id}" ${p.party_id == selected ? 'selected' : ''}>${p.party_name}</option>`
+  ).join('');
+}
+
+function closeCandModal() {
+  document.getElementById('cand-modal').style.display = 'none';
+}
+
+async function saveCandidate() {
+  const id  = document.getElementById('cm-id').value;
+  const eid = document.getElementById('cand-election-select').value;
+  const payload = {
+    action:       id ? 'update' : 'create',
+    candidate_id: id,
+    election_id:  eid,
+    party_id:     document.getElementById('cm-party').value,
+    full_name:    document.getElementById('cm-name').value,
+    bio:          document.getElementById('cm-bio').value
+  };
+  const res = await api(`php/candidates.php?action=${payload.action}`, payload);
+  showToast(res.message, res.success ? 'success' : 'error');
+  if (res.success) { closeCandModal(); loadCandidates(eid); }
+}
+
+async function deleteCandidate(cid) {
+  confirmDialog('Remove this candidate?', async () => {
+    const eid = document.getElementById('cand-election-select').value;
+    const res = await api('php/candidates.php?action=delete', { candidate_id: cid });
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) loadCandidates(eid);
+  });
+}
+
+// ── Users CRUD ────────────────────────────────────────────────
+async function loadUsersTable() {
+  const res = await api('php/users.php?action=list');
+  if (!res.success) return;
+  const tbody = document.querySelector('#users-table tbody');
+  tbody.innerHTML = res.data.map(u => `
+    <tr>
+      <td>${u.user_id}</td>
+      <td>${u.full_name}</td>
+      <td>${u.email}</td>
+      <td><span class="badge badge-${u.role_name}">${u.role_name}</span></td>
+      <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-closed'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td>${fmtDate(u.created_at)}</td>
+      <td style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="toggleUser(${u.user_id})">${u.is_active ? 'Disable' : 'Enable'}</button>
+        <button class="btn btn-danger  btn-sm" onclick="deleteUser(${u.user_id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function toggleUser(uid) {
+  const res = await api('php/users.php?action=toggle', { user_id: uid });
+  showToast(res.message, res.success ? 'success' : 'error');
+  if (res.success) loadUsersTable();
+}
+
+async function deleteUser(uid) {
+  confirmDialog('Permanently delete this user?', async () => {
+    const res = await api('php/users.php?action=delete', { user_id: uid });
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) { loadUsersTable(); loadStats(); }
+  });
+}
+
+// ── Vote Log ──────────────────────────────────────────────────
+function populateLogElectionSelect() {
+  const sel = document.getElementById('log-election-select');
+  sel.innerHTML = '<option value="">— Select —</option>' +
+    electionsData.map(e => `<option value="${e.election_id}">${e.title}</option>`).join('');
+}
+
+async function loadVoteLog(eid) {
+  if (!eid) return;
+  const res = await api(`php/votes.php?action=log&election_id=${eid}`);
+  if (!res.success) return;
+  const tbody = document.querySelector('#votes-table tbody');
+  tbody.innerHTML = res.data.length
+    ? res.data.map(v => `
+        <tr>
+          <td>${v.vote_id}</td>
+          <td>${v.voter_name}</td>
+          <td>${v.candidate_name}</td>
+          <td>${v.party_name}</td>
+          <td>${fmtDate(v.voted_at)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No votes yet.</td></tr>';
+}
+</script>
+</body>
+</html>
