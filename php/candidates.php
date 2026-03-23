@@ -12,12 +12,13 @@ $db     = getDB();
 if ($method === 'GET' && $action === 'list') {
     $eid  = (int)($_GET['election_id'] ?? 0);
     $stmt = $db->prepare(
-        'SELECT c.*, p.party_name, p.party_logo,
+        'SELECT c.*, p.party_name, p.party_logo, pos.position_name,
                 (SELECT COUNT(*) FROM votes v WHERE v.candidate_id = c.candidate_id) AS total_votes
          FROM candidates c
          JOIN parties p ON c.party_id = p.party_id
+         JOIN positions pos ON c.position_id = pos.position_id
          WHERE c.election_id = ?
-         ORDER BY c.candidate_id'
+         ORDER BY pos.display_order, c.candidate_id'
     );
     $stmt->execute([$eid]);
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
@@ -29,39 +30,47 @@ if ($method === 'GET' && $action === 'parties') {
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
 }
 
+// ── READ all positions (for dropdowns) ───────────────────────
+if ($method === 'GET' && $action === 'positions') {
+    $stmt = $db->query('SELECT * FROM positions ORDER BY display_order, position_name');
+    jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
+}
+
 // ── CREATE candidate (admin only) ─────────────────────────────
 if ($method === 'POST' && $action === 'create') {
     requireAdmin();
-    $eid      = (int)($_POST['election_id'] ?? 0);
-    $party_id = (int)($_POST['party_id'] ?? 0);
-    $name     = trim($_POST['full_name'] ?? '');
-    $bio      = trim($_POST['bio'] ?? '');
+    $eid         = (int)($_POST['election_id'] ?? 0);
+    $party_id    = (int)($_POST['party_id'] ?? 0);
+    $position_id = (int)($_POST['position_id'] ?? 0);
+    $name        = trim($_POST['full_name'] ?? '');
+    $bio         = trim($_POST['bio'] ?? '');
 
-    if (!$eid || !$party_id || !$name)
-        jsonResponse(['success' => false, 'message' => 'Election, party, and name required.']);
+    if (!$eid || !$party_id || !$position_id || !$name)
+        jsonResponse(['success' => false, 'message' => 'Election, party, position, and name required.']);
 
     $stmt = $db->prepare(
-        'INSERT INTO candidates (election_id, party_id, full_name, bio) VALUES (?, ?, ?, ?)'
+        'INSERT INTO candidates (election_id, party_id, position_id, full_name, bio) VALUES (?, ?, ?, ?, ?)'
     );
-    $stmt->execute([$eid, $party_id, $name, $bio]);
+    $stmt->execute([$eid, $party_id, $position_id, $name, $bio]);
     jsonResponse(['success' => true, 'message' => 'Candidate added.', 'id' => $db->lastInsertId()]);
 }
 
 // ── UPDATE candidate (admin only) ─────────────────────────────
 if ($method === 'POST' && $action === 'update') {
     requireAdmin();
-    $cid      = (int)($_POST['candidate_id'] ?? 0);
-    $party_id = (int)($_POST['party_id'] ?? 0);
-    $name     = trim($_POST['full_name'] ?? '');
-    $bio      = trim($_POST['bio'] ?? '');
+    $cid         = (int)($_POST['candidate_id'] ?? 0);
+    $party_id    = (int)($_POST['party_id'] ?? 0);
+    $position_id = (int)($_POST['position_id'] ?? 0);
+    $name        = trim($_POST['full_name'] ?? '');
+    $bio         = trim($_POST['bio'] ?? '');
 
-    if (!$cid || !$party_id || !$name)
+    if (!$cid || !$party_id || !$position_id || !$name)
         jsonResponse(['success' => false, 'message' => 'All fields required.']);
 
     $stmt = $db->prepare(
-        'UPDATE candidates SET party_id=?, full_name=?, bio=? WHERE candidate_id=?'
+        'UPDATE candidates SET party_id=?, position_id=?, full_name=?, bio=? WHERE candidate_id=?'
     );
-    $stmt->execute([$party_id, $name, $bio, $cid]);
+    $stmt->execute([$party_id, $position_id, $name, $bio, $cid]);
     jsonResponse(['success' => true, 'message' => 'Candidate updated.']);
 }
 

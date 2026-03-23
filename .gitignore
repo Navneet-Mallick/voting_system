@@ -1,0 +1,30 @@
+# Sensitive configuration files
+php/config.php
+
+# Password utilities (delete after use)
+generate_password_hash.php
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Database backups
+*.sql.gz
+backups/

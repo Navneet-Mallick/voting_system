@@ -4,16 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoteSecure — Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
 <!-- Navbar -->
 <nav class="navbar">
-  <a class="brand" href="dashboard.html">🗳️ Vote<span>Secure</span></a>
+  <a class="brand" href="dashboard.html">
+    <span class="logo"><img src="images/logo.svg" alt="VoteSecure"></span>
+    Vote<span>Secure</span>
+  </a>
   <div class="nav-links">
     <a href="dashboard.html" class="active">Elections</a>
     <a href="results.html">Results</a>
+    <a href="admin.html" id="admin-link" style="display:none">Admin Panel</a>
+    <a href="change_password.php">Change Password</a>
     <span id="nav-user" style="color:rgba(255,255,255,.7);font-size:.9rem"></span>
     <button class="btn-logout" onclick="logout()">Logout</button>
   </div>
@@ -70,6 +76,12 @@ let isAdmin = false;
   if (!sess) return;
   isAdmin = sess.role === 'admin';
   renderNav(sess);
+  
+  // Show admin link if user is admin
+  if (isAdmin) {
+    document.getElementById('admin-link').style.display = '';
+  }
+  
   loadElections();
 })();
 
@@ -134,36 +146,73 @@ async function openVote(eid, title, desc) {
   document.getElementById('cast-btn').disabled        = true;
   document.getElementById('candidates-grid').innerHTML = '<p>Loading candidates…</p>';
 
-  // Check if already voted
+  // Check which positions already voted
   const vr = await api(`php/votes.php?action=check&election_id=${eid}`);
-  if (vr.voted) {
-    document.getElementById('candidates-grid').innerHTML =
-      `<div style="grid-column:1/-1;text-align:center;padding:2rem">
-        <p style="font-size:2rem">✅</p>
-        <p>You already voted for <strong>${vr.data.candidate_name}</strong> (${vr.data.party_name})</p>
-      </div>`;
-    return;
-  }
+  const votedPositions = vr.votes || {};
 
   const cr = await api(`php/candidates.php?action=list&election_id=${eid}`);
   if (!cr.success || !cr.data.length) {
     document.getElementById('candidates-grid').innerHTML = '<p>No candidates yet.</p>';
     return;
   }
-  document.getElementById('candidates-grid').innerHTML = cr.data.map((c, i) => `
-    <div class="candidate-card" style="animation-delay:${i * 60}ms" onclick="selectCandidate(${c.candidate_id}, this)" id="cand-${c.candidate_id}">
-      <div class="check-mark">✓</div>
-      <div class="candidate-name">${c.full_name}</div>
-      <div class="candidate-party">🏛️ ${c.party_name}</div>
-      <div class="candidate-bio">${c.bio || ''}</div>
-    </div>
-  `).join('');
+
+  // Group candidates by position
+  const byPosition = {};
+  cr.data.forEach(c => {
+    if (!byPosition[c.position_id]) {
+      byPosition[c.position_id] = {
+        position_id: c.position_id,
+        position_name: c.position_name,
+        candidates: []
+      };
+    }
+    byPosition[c.position_id].candidates.push(c);
+  });
+
+  // Render grouped by position
+  let html = '';
+  Object.values(byPosition).forEach(pos => {
+    const alreadyVoted = votedPositions[pos.position_id];
+    html += `<div style="grid-column:1/-1;margin-top:1.5rem;border-top:1px solid #e5e7eb;padding-top:1rem">
+      <h4 style="margin-bottom:.75rem;color:var(--primary)">${pos.position_name}</h4>`;
+    
+    if (alreadyVoted) {
+      html += `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;text-align:center">
+        <p style="margin:0">✅ You voted for <strong>${alreadyVoted.candidate_name}</strong> (${alreadyVoted.party_name})</p>
+      </div>`;
+    } else {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">';
+      pos.candidates.forEach((c, i) => {
+        html += `
+          <div class="candidate-card" style="animation-delay:${i * 60}ms" 
+               onclick="selectCandidate(${c.candidate_id}, ${pos.position_id}, this)" 
+               id="cand-${c.candidate_id}">
+            <div class="check-mark">✓</div>
+            <div class="candidate-name">${c.full_name}</div>
+            <div class="candidate-party">🏛️ ${c.party_name}</div>
+            <div class="candidate-bio">${c.bio || ''}</div>
+          </div>`;
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  document.getElementById('candidates-grid').innerHTML = html;
 }
 
-function selectCandidate(cid, el) {
-  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+let selectedPositionId = null;
+
+function selectCandidate(cid, posId, el) {
+  // Clear selection in this position group only
+  document.querySelectorAll('.candidate-card').forEach(c => {
+    if (c.id === `cand-${cid}` || c.onclick.toString().includes(`${posId}`)) {
+      c.classList.remove('selected');
+    }
+  });
   el.classList.add('selected');
   selectedCandidateId = cid;
+  selectedPositionId  = posId;
   document.getElementById('cast-btn').disabled = false;
 }
 

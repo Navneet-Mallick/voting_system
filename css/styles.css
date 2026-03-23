@@ -57,6 +57,18 @@ h3 { font-size: 1.25rem; }
   align-items: center;
   gap: .5rem;
 }
+.navbar .brand .logo {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.navbar .brand .logo img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.2));
+}
 .navbar .brand span { color: var(--gold); }
 .nav-links { display: flex; gap: 1rem; align-items: center; }
 .nav-links a {
@@ -122,6 +134,11 @@ h3 { font-size: 1.25rem; }
   0%   { transform: scale(.98); }
   55%  { transform: scale(1.02); }
   100% { transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .election-card { animation: fadeUp .45s ease both; }
@@ -365,6 +382,12 @@ tr:hover td { background: #fafaf7; }
   box-shadow: 0 24px 64px rgba(0,0,0,.25);
 }
 .auth-logo { text-align: center; margin-bottom: 2rem; }
+.auth-logo .logo-img {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  filter: drop-shadow(0 4px 12px rgba(26,58,110,.25));
+}
 .auth-logo h1 { font-size: 2rem; color: var(--primary); }
 .auth-logo h1 span { color: var(--accent); }
 .auth-logo p { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
@@ -388,11 +411,25 @@ tr:hover td { background: #fafaf7; }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
 /* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .navbar { padding: .75rem 1rem; }
-  .nav-links a { display: none; }
+@media (max-width: 768px) {
+  .navbar { padding: .75rem 1rem; flex-wrap: wrap; }
+  .nav-links { width: 100%; justify-content: space-between; margin-top: .5rem; }
+  .nav-links a:not(.btn-logout) { font-size: .85rem; padding: .3rem .6rem; }
   .container { padding: 1.5rem 1rem; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+  .modal { padding: 1.5rem; }
+  .table-wrap { font-size: .85rem; }
+  th, td { padding: .5rem .75rem; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.35rem; }
+  .navbar .brand { font-size: 1.2rem; }
+  .nav-links a:not(.btn-logout) { display: none; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .auth-box { padding: 1.75rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -417,3 +454,61 @@ tr:hover td { background: #fafaf7; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
 .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+/* ── Winner highlight ───────────────────────────────────────── */
+.winner-badge {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  margin-bottom: 1rem;
+}
+.winner-badge .winner-label {
+  font-size: .75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--success);
+  letter-spacing: .05em;
+}
+.winner-badge .winner-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: .25rem 0;
+}
+.winner-badge .winner-meta {
+  font-size: .85rem;
+  color: var(--muted);
+}
+
+/* ── Voted indicator ────────────────────────────────────────── */
+.voted-indicator {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  margin: .75rem 0;
+}
+
+/* ── Position section ───────────────────────────────────────── */
+.position-section {
+  grid-column: 1 / -1;
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
+.position-section h4 {
+  margin-bottom: .75rem;
+  color: var(--primary);
+}
+.position-candidates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+@media (max-width: 640px) {
+  .position-candidates {
+    grid-template-columns: 1fr;
+  }
+}

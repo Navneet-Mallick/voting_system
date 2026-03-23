@@ -4,15 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoteSecure — Admin Panel</title>
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
 <nav class="navbar">
-  <a class="brand" href="admin.html">🗳️ Vote<span>Secure</span> <span style="font-size:.7rem;background:var(--gold);color:var(--ink);padding:.1rem .4rem;border-radius:4px;vertical-align:middle">ADMIN</span></a>
+  <a class="brand" href="admin.html">
+    <span class="logo"><img src="images/logo.svg" alt="VoteSecure"></span>
+    Vote<span>Secure</span> 
+    <span style="font-size:.7rem;background:var(--gold);color:var(--ink);padding:.1rem .4rem;border-radius:4px;vertical-align:middle">ADMIN</span>
+  </a>
   <div class="nav-links">
     <a href="admin.html" class="active">Dashboard</a>
     <a href="dashboard.html">Voter View</a>
+    <a href="change_password.php">Change Password</a>
     <span id="nav-user" style="color:rgba(255,255,255,.7);font-size:.9rem"></span>
     <button class="btn-logout" onclick="logout()">Logout</button>
   </div>
@@ -32,6 +38,8 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="showTab('elections', this)">📋 Elections</button>
     <button class="tab-btn" onclick="showTab('candidates', this)">👤 Candidates</button>
+    <button class="tab-btn" onclick="showTab('parties', this)">🏛️ Parties</button>
+    <button class="tab-btn" onclick="showTab('positions', this)">📍 Positions</button>
     <button class="tab-btn" onclick="showTab('users', this)">👥 Users</button>
     <button class="tab-btn" onclick="showTab('votes', this)">🗳️ Vote Log</button>
   </div>
@@ -66,7 +74,39 @@
     <div class="table-wrap">
       <table id="candidates-table">
         <thead>
-          <tr><th>#</th><th>Name</th><th>Party</th><th>Votes</th><th>Actions</th></tr>
+          <tr><th>#</th><th>Name</th><th>Party</th><th>Position</th><th>Votes</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── PARTIES TAB ────────────────────────────────────── -->
+  <div id="tab-parties" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <h3>Manage Parties</h3>
+      <button class="btn btn-primary" onclick="openPartyModal()">+ New Party</button>
+    </div>
+    <div class="table-wrap">
+      <table id="parties-table">
+        <thead>
+          <tr><th>#</th><th>Party Name</th><th>Description</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── POSITIONS TAB ──────────────────────────────────── -->
+  <div id="tab-positions" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <h3>Manage Positions</h3>
+      <button class="btn btn-primary" onclick="openPositionModal()">+ New Position</button>
+    </div>
+    <div class="table-wrap">
+      <table id="positions-table">
+        <thead>
+          <tr><th>#</th><th>Position Name</th><th>Description</th><th>Display Order</th><th>Actions</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -99,7 +139,7 @@
     <div class="table-wrap">
       <table id="votes-table">
         <thead>
-          <tr><th>#</th><th>Voter</th><th>Candidate</th><th>Party</th><th>Voted At</th></tr>
+          <tr><th>#</th><th>Voter</th><th>Candidate</th><th>Party</th><th>Position</th><th>Voted At</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -166,12 +206,66 @@
       <select class="form-control" id="cm-party"></select>
     </div>
     <div class="form-group">
+      <label>Position *</label>
+      <select class="form-control" id="cm-position"></select>
+    </div>
+    <div class="form-group">
       <label>Bio</label>
       <textarea class="form-control" id="cm-bio" placeholder="Short biography"></textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem">
       <button class="btn btn-outline" onclick="closeCandModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveCandidate()">Save Candidate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Party Modal -->
+<div class="modal-overlay" id="party-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="pm-title">New Party</h3>
+      <button class="modal-close" onclick="closePartyModal()">✕</button>
+    </div>
+    <input type="hidden" id="pm-id">
+    <div class="form-group">
+      <label>Party Name *</label>
+      <input type="text" class="form-control" id="pm-name" placeholder="Party name">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-control" id="pm-desc" placeholder="Party description"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem">
+      <button class="btn btn-outline" onclick="closePartyModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveParty()">Save Party</button>
+    </div>
+  </div>
+</div>
+
+<!-- Position Modal -->
+<div class="modal-overlay" id="position-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="posm-title">New Position</h3>
+      <button class="modal-close" onclick="closePositionModal()">✕</button>
+    </div>
+    <input type="hidden" id="posm-id">
+    <div class="form-group">
+      <label>Position Name *</label>
+      <input type="text" class="form-control" id="posm-name" placeholder="e.g., President, Secretary">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-control" id="posm-desc" placeholder="Position description"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Display Order</label>
+      <input type="number" class="form-control" id="posm-order" value="0" placeholder="0">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:.5rem">
+      <button class="btn btn-outline" onclick="closePositionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePosition()">Save Position</button>
     </div>
   </div>
 </div>
@@ -189,6 +283,7 @@ let currentTab    = 'elections';
   loadStats();
   loadElectionsTable();
   loadParties();
+  loadPositions();
 })();
 
 // ── Stats ────────────────────────────────────────────────────
@@ -204,15 +299,17 @@ async function loadStats() {
 
 // ── Tab switching ─────────────────────────────────────────────
 function showTab(tab, btn) {
-  ['elections','candidates','users','votes'].forEach(t => {
+  ['elections','candidates','parties','positions','users','votes'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentTab = tab;
-  if (tab === 'users')  loadUsersTable();
+  if (tab === 'users')     loadUsersTable();
   if (tab === 'candidates') populateCandElectionSelect();
-  if (tab === 'votes')  populateLogElectionSelect();
+  if (tab === 'parties')   loadPartiesTable();
+  if (tab === 'positions') loadPositionsTable();
+  if (tab === 'votes')     populateLogElectionSelect();
 }
 
 // ── Elections CRUD ────────────────────────────────────────────
@@ -291,10 +388,16 @@ async function deleteElection(id) {
 
 // ── Candidates CRUD ───────────────────────────────────────────
 let partiesData = [];
+let positionsData = [];
 
 async function loadParties() {
   const res = await api('php/candidates.php?action=parties');
   if (res.success) partiesData = res.data;
+}
+
+async function loadPositions() {
+  const res = await api('php/candidates.php?action=positions');
+  if (res.success) positionsData = res.data;
 }
 
 function populateCandElectionSelect() {
@@ -313,9 +416,10 @@ async function loadCandidates(eid) {
       <td>${c.candidate_id}</td>
       <td><strong>${c.full_name}</strong></td>
       <td>${c.party_name}</td>
+      <td>${c.position_name}</td>
       <td>${c.total_votes}</td>
       <td style="display:flex;gap:.4rem">
-        <button class="btn btn-outline btn-sm" onclick="editCandidate(${c.candidate_id},'${c.full_name}',${c.party_id},'${c.bio||''}')">Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="editCandidate(${c.candidate_id})">Edit</button>
         <button class="btn btn-danger  btn-sm" onclick="deleteCandidate(${c.candidate_id})">Remove</button>
       </td>
     </tr>
@@ -330,15 +434,23 @@ function openCandModal() {
   document.getElementById('cm-name').value = '';
   document.getElementById('cm-bio').value  = '';
   populateCandPartySelect();
+  populateCandPositionSelect();
   document.getElementById('cand-modal').style.display = 'flex';
 }
 
-function editCandidate(id, name, partyId, bio) {
+async function editCandidate(id) {
+  const eid = document.getElementById('cand-election-select').value;
+  const res = await api(`php/candidates.php?action=list&election_id=${eid}`);
+  if (!res.success) return;
+  const cand = res.data.find(c => c.candidate_id == id);
+  if (!cand) return;
+  
   document.getElementById('cm-title').textContent = 'Edit Candidate';
-  document.getElementById('cm-id').value   = id;
-  document.getElementById('cm-name').value = name;
-  document.getElementById('cm-bio').value  = bio;
-  populateCandPartySelect(partyId);
+  document.getElementById('cm-id').value   = cand.candidate_id;
+  document.getElementById('cm-name').value = cand.full_name;
+  document.getElementById('cm-bio').value  = cand.bio || '';
+  populateCandPartySelect(cand.party_id);
+  populateCandPositionSelect(cand.position_id);
   document.getElementById('cand-modal').style.display = 'flex';
 }
 
@@ -346,6 +458,13 @@ function populateCandPartySelect(selected = null) {
   const sel = document.getElementById('cm-party');
   sel.innerHTML = partiesData.map(p =>
     `<option value="${p.party_id}" ${p.party_id == selected ? 'selected' : ''}>${p.party_name}</option>`
+  ).join('');
+}
+
+function populateCandPositionSelect(selected = null) {
+  const sel = document.getElementById('cm-position');
+  sel.innerHTML = positionsData.map(p =>
+    `<option value="${p.position_id}" ${p.position_id == selected ? 'selected' : ''}>${p.position_name}</option>`
   ).join('');
 }
 
@@ -361,6 +480,7 @@ async function saveCandidate() {
     candidate_id: id,
     election_id:  eid,
     party_id:     document.getElementById('cm-party').value,
+    position_id:  document.getElementById('cm-position').value,
     full_name:    document.getElementById('cm-name').value,
     bio:          document.getElementById('cm-bio').value
   };
@@ -432,9 +552,138 @@ async function loadVoteLog(eid) {
           <td>${v.voter_name}</td>
           <td>${v.candidate_name}</td>
           <td>${v.party_name}</td>
+          <td>${v.position_name}</td>
           <td>${fmtDate(v.voted_at)}</td>
         </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No votes yet.</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No votes yet.</td></tr>';
+}
+
+// ── Parties CRUD ──────────────────────────────────────────────
+async function loadPartiesTable() {
+  const res = await api('php/parties.php?action=list');
+  if (!res.success) return;
+  const tbody = document.querySelector('#parties-table tbody');
+  tbody.innerHTML = res.data.map(p => `
+    <tr>
+      <td>${p.party_id}</td>
+      <td><strong>${p.party_name}</strong></td>
+      <td>${p.description || '—'}</td>
+      <td style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="editParty(${p.party_id})">Edit</button>
+        <button class="btn btn-danger  btn-sm" onclick="deleteParty(${p.party_id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openPartyModal() {
+  document.getElementById('pm-title').textContent = 'New Party';
+  document.getElementById('pm-id').value   = '';
+  document.getElementById('pm-name').value = '';
+  document.getElementById('pm-desc').value = '';
+  document.getElementById('party-modal').style.display = 'flex';
+}
+
+async function editParty(id) {
+  const res = await api(`php/parties.php?action=get&id=${id}`);
+  if (!res.success) return;
+  const p = res.data;
+  document.getElementById('pm-title').textContent = 'Edit Party';
+  document.getElementById('pm-id').value   = p.party_id;
+  document.getElementById('pm-name').value = p.party_name;
+  document.getElementById('pm-desc').value = p.description || '';
+  document.getElementById('party-modal').style.display = 'flex';
+}
+
+function closePartyModal() {
+  document.getElementById('party-modal').style.display = 'none';
+}
+
+async function saveParty() {
+  const id = document.getElementById('pm-id').value;
+  const payload = {
+    action:      id ? 'update' : 'create',
+    party_id:    id,
+    party_name:  document.getElementById('pm-name').value,
+    description: document.getElementById('pm-desc').value
+  };
+  const res = await api(`php/parties.php?action=${payload.action}`, payload);
+  showToast(res.message, res.success ? 'success' : 'error');
+  if (res.success) { closePartyModal(); loadPartiesTable(); loadParties(); }
+}
+
+async function deleteParty(id) {
+  confirmDialog('Delete this party?', async () => {
+    const res = await api('php/parties.php?action=delete', { party_id: id });
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) { loadPartiesTable(); loadParties(); }
+  });
+}
+
+// ── Positions CRUD ────────────────────────────────────────────
+async function loadPositionsTable() {
+  const res = await api('php/positions.php?action=list');
+  if (!res.success) return;
+  const tbody = document.querySelector('#positions-table tbody');
+  tbody.innerHTML = res.data.map(p => `
+    <tr>
+      <td>${p.position_id}</td>
+      <td><strong>${p.position_name}</strong></td>
+      <td>${p.description || '—'}</td>
+      <td>${p.display_order}</td>
+      <td style="display:flex;gap:.4rem">
+        <button class="btn btn-outline btn-sm" onclick="editPosition(${p.position_id})">Edit</button>
+        <button class="btn btn-danger  btn-sm" onclick="deletePosition(${p.position_id})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openPositionModal() {
+  document.getElementById('posm-title').textContent = 'New Position';
+  document.getElementById('posm-id').value    = '';
+  document.getElementById('posm-name').value  = '';
+  document.getElementById('posm-desc').value  = '';
+  document.getElementById('posm-order').value = '0';
+  document.getElementById('position-modal').style.display = 'flex';
+}
+
+async function editPosition(id) {
+  const res = await api(`php/positions.php?action=get&id=${id}`);
+  if (!res.success) return;
+  const p = res.data;
+  document.getElementById('posm-title').textContent = 'Edit Position';
+  document.getElementById('posm-id').value    = p.position_id;
+  document.getElementById('posm-name').value  = p.position_name;
+  document.getElementById('posm-desc').value  = p.description || '';
+  document.getElementById('posm-order').value = p.display_order;
+  document.getElementById('position-modal').style.display = 'flex';
+}
+
+function closePositionModal() {
+  document.getElementById('position-modal').style.display = 'none';
+}
+
+async function savePosition() {
+  const id = document.getElementById('posm-id').value;
+  const payload = {
+    action:        id ? 'update' : 'create',
+    position_id:   id,
+    position_name: document.getElementById('posm-name').value,
+    description:   document.getElementById('posm-desc').value,
+    display_order: document.getElementById('posm-order').value
+  };
+  const res = await api(`php/positions.php?action=${payload.action}`, payload);
+  showToast(res.message, res.success ? 'success' : 'error');
+  if (res.success) { closePositionModal(); loadPositionsTable(); loadPositions(); }
+}
+
+async function deletePosition(id) {
+  confirmDialog('Delete this position?', async () => {
+    const res = await api('php/positions.php?action=delete', { position_id: id });
+    showToast(res.message, res.success ? 'success' : 'error');
+    if (res.success) { loadPositionsTable(); loadPositions(); }
+  });
 }
 </script>
 </body>

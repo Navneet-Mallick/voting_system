@@ -60,6 +60,7 @@ if ($action === 'login') {
 
     $_SESSION['user_id']   = $user['user_id'];
     $_SESSION['full_name'] = $user['full_name'];
+    $_SESSION['email']     = $email;
     $_SESSION['role']      = $user['role_name'];
 
     jsonResponse([

@@ -1,23 +1,37 @@
 <?php
 // ── Database Configuration ────────────────────────────────────
+// Copy this file to config.php and update with your credentials
 define('DB_HOST', 'localhost');
-define('DB_PORT', '3307');
+define('DB_PORT', '3306');  // Change to 3307 if needed
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'voting_system');
+
+// ── Production Settings ───────────────────────────────────────
+// Uncomment these in production environment
+// ini_set('display_errors', '0');
+// ini_set('log_errors', '1');
+// ini_set('error_log', '/path/to/logs/php-error.log');
+// ini_set('session.cookie_secure', '1');      // Requires HTTPS
+// ini_set('session.cookie_httponly', '1');
+// ini_set('session.cookie_samesite', 'Strict');
+// ini_set('session.use_only_cookies', '1');
 
 function getDB(): PDO {
     static $pdo = null;
     if ($pdo === null) {
         try {
-            $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+            $port = defined('DB_PORT') ? DB_PORT : 3306;
+            $dsn = 'mysql:host=' . DB_HOST . ';port=' . $port . ';dbname=' . DB_NAME . ';charset=utf8mb4';
             $pdo = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
         } catch (PDOException $e) {
-            die(json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]));
+            // In production, log error instead of displaying
+            error_log('Database connection failed: ' . $e->getMessage());
+            die(json_encode(['error' => 'Database connection failed. Please contact administrator.']));
         }
     }
     return $pdo;
