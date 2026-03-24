@@ -43,8 +43,13 @@ if ($method === 'POST' && $action === 'delete') {
     requireAdmin();
     $uid = (int)($_POST['user_id'] ?? 0);
     if (!$uid) jsonResponse(['success' => false, 'message' => 'Invalid user ID.']);
+    // Prevent deleting own account
+    if ($uid === (int)$_SESSION['user_id'])
+        jsonResponse(['success' => false, 'message' => 'You cannot delete your own account.']);
+    // Delete votes first (FK constraint), then user
+    $db->prepare("DELETE FROM votes WHERE user_id = ?")->execute([$uid]);
     $db->prepare("DELETE FROM users WHERE user_id = ?")->execute([$uid]);
-    jsonResponse(['success' => true, 'message' => 'User deleted.']);
+    jsonResponse(['success' => true, 'message' => 'User deleted successfully.']);
 }
 
 // ── STATS dashboard ───────────────────────────────────────────
